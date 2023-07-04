@@ -1,16 +1,36 @@
 import torch
+import pickle
 import gym
 import numpy as np
 import neat
 from pyneat_repo.neat_f.phenotype.feed_forward import FeedForwardNet
 from tqdm import tqdm 
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+IMPORT = True
+
 
 def distance(point1, point2):
     return np.sqrt(np.sum((point1 - point2)**2))
 
 
-n_of_points = 10
-points = np.random.rand(n_of_points, 3)
+# Generate 10 random 3D points or import from file
+if IMPORT:
+    # Read the pickle file
+    with open('pytorch_neat/points/v1.pkl', 'rb') as input:
+        points = pickle.load(input)
+    n_of_points = len(points)
+else:
+    n_of_points = 10
+    points = np.random.rand(n_of_points, 3)
+
+# Plot the points
+for point in points:
+    print(point)
+
+
+
 
 class ANTConfig:
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -124,7 +144,8 @@ class ANTConfig:
                 pheromone[path[-1], path[0]] += Q/path_length
         
         
-
+        print('Distance travelled:', total_distance)
+        print('Point visited:', point_visited)
         print('Best score:', best_score, best_individual_point_visited)
         #print('Best path:', best_path, '\n' 'Best path length:', best_path_length )
     

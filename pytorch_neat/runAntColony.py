@@ -1,4 +1,5 @@
 import logging
+import pickle
 #import neat
 import pyneat_repo.neat_f.population as pop
 import antConfig as c
@@ -35,6 +36,11 @@ for i in tqdm(range(1)):
 
         num_of_solutions += 1
         draw_net(solution, view=True, filename='./images/solution-' + str(num_of_solutions), show_disabled=True)
+
+# Save the solution
+with open('pytorch_neat/solutions/solution.pkl', 'wb') as output:
+    pickle.dump(solution, generation, 1)
+
 
 logger.info('Total Number of Solutions: ', num_of_solutions)
 logger.info('Average Number of Hidden Nodes in a Solution', avg_num_hidden_nodes)
