@@ -1,0 +1,18 @@
+name: bioproject
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - torchaudio
+  - pytorch::pytorch
+  - torchvision
+  - ipykernel
+  - graphviz
+  - python-graphviz
+  - pygraphviz
+  - pydot
+  - gymnasium-notices
+  - gymnasium
+  - gym
+  - matplotlib
+prefix: /Users/debryu/anaconda3/envs/bioproject
