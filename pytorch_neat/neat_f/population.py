@@ -4,11 +4,11 @@ import random
 import numpy as np
 
 #import neat.utils as utils
-import pyneat_repo.neat_f.utils as utils
-from pyneat_repo.neat_f.genotype.genome import Genome
-from pyneat_repo.neat_f.species import Species
-from pyneat_repo.neat_f.crossover import crossover
-from pyneat_repo.neat_f.mutation import mutate
+import neat_f.utils as utils
+from neat_f.genotype.genome import Genome
+from neat_f.species import Species
+from neat_f.crossover import crossover
+from neat_f.mutation import mutate
 
 
 logger = logging.getLogger(__name__)

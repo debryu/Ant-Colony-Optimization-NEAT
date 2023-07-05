@@ -3,7 +3,7 @@ import pickle
 import gym
 import numpy as np
 import neat
-from pyneat_repo.neat_f.phenotype.feed_forward import FeedForwardNet
+from neat_f.phenotype.feed_forward import FeedForwardNet
 from tqdm import tqdm 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -124,7 +124,12 @@ class ANTConfig:
                 total_distance = distance(points[path[0]], points[path[-1]])
                 for i in range(n_of_points-1):
                     total_distance += distance(points[path[i]], points[path[i+1]])
+
+                # Score first attempt
                 score = (point_visited**2)*(1/total_distance)
+
+                # Score second attempt
+                score = (point_visited/total_distance)
                 scores.append(score)
                 
                 if path_length < best_path_length:

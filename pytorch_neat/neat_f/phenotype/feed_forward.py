@@ -2,7 +2,7 @@ import logging
 import torch
 import torch.nn as nn
 
-import pyneat_repo.neat_f.activations as a
+import neat_f.activations as a
 from torch import autograd
 
 

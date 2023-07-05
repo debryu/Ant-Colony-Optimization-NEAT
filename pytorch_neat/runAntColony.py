@@ -1,9 +1,9 @@
 import logging
 import pickle
 #import neat
-import pyneat_repo.neat_f.population as pop
+import neat_f.population as pop
 import antConfig as c
-from pyneat_repo.neat_f.visualize import draw_net
+from neat_f.visualize import draw_net
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)

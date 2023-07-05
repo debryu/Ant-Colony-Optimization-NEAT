@@ -1,7 +1,7 @@
 import logging
 import random
 
-import pyneat_repo.neat_f.utils as utils
+import neat_f.utils as utils
 
 
 logger = logging.getLogger(__name__)

@@ -1,8 +1,8 @@
 import logging
 import random
 
-from pyneat_repo.neat_f.genotype.connection_gene import ConnectionGene
-from pyneat_repo.neat_f.genotype.node_gene import NodeGene
+from neat_f.genotype.connection_gene import ConnectionGene
+from neat_f.genotype.node_gene import NodeGene
 
 
 logger = logging.getLogger(__name__)
