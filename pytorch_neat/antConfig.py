@@ -7,8 +7,15 @@ from neat_f.phenotype.feed_forward import FeedForwardNet
 from tqdm import tqdm 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import os
 
 IMPORT = True
+SAVE_PHEROMONE = True # Use the same pheromone for all generations
+file_path = 'pytorch_neat/pheromone/P.pkl'
+if os.path.exists(file_path):
+    file_present = True
+else:
+    file_present = False
 
 
 def distance(point1, point2):
@@ -25,6 +32,14 @@ else:
     n_of_points = 10
     points = np.random.rand(n_of_points, 3)
 
+if SAVE_PHEROMONE:
+    if file_present:
+        with open(file_path, 'rb') as input:
+            saved_phero = pickle.load(input)
+    else:
+        print("File does not exist.")
+    
+
 # Plot the points
 for point in points:
     print(point)
@@ -34,24 +49,29 @@ for point in points:
 
 class ANTConfig:
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cpu")
     VERBOSE = True
-
-    NUM_INPUTS = n_of_points**2
-    NUM_OUTPUTS = n_of_points
-    USE_BIAS = True
+    print("Using device: ", DEVICE)
+    NUM_INPUTS = 2*n_of_points**2 + n_of_points
+    #Test
+    #NUM_INPUTS = n_of_points
+    #Test2
+    NUM_INPUTS = n_of_points + n_of_points**2
+    NUM_OUTPUTS = n_of_points 
+    USE_BIAS = False
 
     ACTIVATION = 'sigmoid'
     SCALE_ACTIVATION = 4.9
 
-    FITNESS_THRESHOLD = 90.0
+    FITNESS_THRESHOLD = 165.0
 
-    POPULATION_SIZE = 10
+    POPULATION_SIZE = 3
     NUMBER_OF_GENERATIONS = 10
     SPECIATION_THRESHOLD = 3.0
 
     CONNECTION_MUTATION_RATE = 0.80
     CONNECTION_PERTURBATION_RATE = 0.90
-    ADD_NODE_MUTATION_RATE = 0.03
+    ADD_NODE_MUTATION_RATE = 0.5
     ADD_CONNECTION_MUTATION_RATE = 0.5
 
     CROSSOVER_REENABLE_CONNECTION_GENE_RATE = 0.25
@@ -66,7 +86,10 @@ class ANTConfig:
         
 
         # Do an ant colony run
-        pheromone = np.ones((n_of_points, n_of_points))
+        if SAVE_PHEROMONE and file_present:
+            pheromone = saved_phero
+        else:
+            pheromone = np.ones((n_of_points, n_of_points))
         best_path = None
         best_path_length = np.inf
         best_score = 0
@@ -83,7 +106,7 @@ class ANTConfig:
                 path_length = 0
                 moves = 0 
                 while moves < n_of_points:
-                    probabilities = np.zeros(n_of_points)
+                    probabilities = np.ones(n_of_points)
                     visited[current_point] = True
 
                     ''' INPUTS FOR NEURAL NETWORK '''
@@ -94,9 +117,34 @@ class ANTConfig:
                     '''
                     #points = np.random.rand(10, 3) # Generate 10 random 3D points 
                     #print(phenotype)
+                    
+                    # Convert pheromone to tensor
+                    pheromone_asTensor = torch.Tensor(pheromone).reshape(-1).to(self.DEVICE).unsqueeze(0)
 
-                    pheromone_aslist = torch.Tensor(pheromone).reshape(-1).to(self.DEVICE).unsqueeze(0)
-                    network_input = pheromone_aslist
+                    # Convert disances to tensor
+                    distances = np.zeros((n_of_points, n_of_points))
+                    for i in range(n_of_points):
+                        for j in range(n_of_points):
+                            distances[i,j] = distance(points[i], points[j])
+
+                    # For now, we will use the distance matrix as input
+                    # Since the matrix is symmetric, we can use only the upper triangular part
+                    distances_asTensor = torch.Tensor(distances).reshape(-1).to(self.DEVICE).unsqueeze(0)
+
+
+                    # Convert visited vector to tensor
+                    # First convert to int
+                    visited_asInt = [1 if i==True else 0 for i in visited]
+                    visited_asTensor = torch.Tensor(visited_asInt).to(self.DEVICE).unsqueeze(0)
+
+                    # Concatenate the two tensors
+                    network_input = torch.cat((pheromone_asTensor, distances_asTensor, visited_asTensor), dim=1)
+
+                    #Test
+                    #network_input = visited_asTensor
+                    #Test2
+                    network_input = torch.cat((pheromone_asTensor, visited_asTensor), dim=1)
+
                     #print(network_input)
                     probabilities = phenotype(network_input)
                     #print('probs',probabilities)
@@ -108,8 +156,14 @@ class ANTConfig:
                     #Softmax
                     probabilities = probabilities.squeeze(0).to('cpu').detach().numpy()
                     #print('probs',probabilities)
+
+                    if(np.sum(probabilities) == 0):
+                        # If all probabilities are 0, we assign equal probabilities to all unvisited points
+                        probabilities = np.ones(n_of_points)
+                    
                     probabilities /= np.sum(probabilities)
                     
+                    print('probs',probabilities)
                     next_point = np.random.choice(range(n_of_points), p=probabilities)
                     path.append(next_point)
                     path_length += distance(points[current_point], points[next_point])
@@ -121,7 +175,8 @@ class ANTConfig:
                 paths.append(path)
                 path_lengths.append(path_length)
 
-                total_distance = distance(points[path[0]], points[path[-1]])
+                
+                total_distance = distance(points[path[0]], points[path[-1]]) + (10-point_visited) * 17.32
                 for i in range(n_of_points-1):
                     total_distance += distance(points[path[i]], points[path[i+1]])
 
@@ -130,6 +185,22 @@ class ANTConfig:
 
                 # Score second attempt
                 score = (point_visited/total_distance)
+
+                # Score third attempt
+                score = (point_visited/total_distance #weight for choosing the shortest path
+                        + point_visited) #weight for choosing the path that visits the most points
+                
+                # Score fourth attempt
+                score = (40*point_visited/total_distance 
+                        + point_visited*10) 
+                
+                # Score fifth attempt   
+                score = (1/(total_distance-40)*500 
+                        + point_visited*10) 
+                if(point_visited == 10):
+                    score += 1000
+
+                
                 scores.append(score)
                 
                 if path_length < best_path_length:
@@ -139,20 +210,30 @@ class ANTConfig:
                 if score > best_score:
                     best_score = score
                     best_individual_point_visited = point_visited
+                    best_total_distance = total_distance
             
             pheromone *= evaporation_rate
             
             # Update pheromone
             for path, path_length in zip(paths, path_lengths):
+                if path_length == 0:
+                    continue
                 for i in range(n_of_points-1):
                     pheromone[path[i], path[i+1]] += Q/path_length
                 pheromone[path[-1], path[0]] += Q/path_length
         
         
-        print('Distance travelled:', total_distance)
-        print('Point visited:', point_visited)
-        print('Best score:', best_score, best_individual_point_visited)
+        print('Best distance travelled:', best_total_distance)
+        print('Best point visited:', best_individual_point_visited)
+        print('Best score:', best_score)
+        print('DPP:', best_total_distance/best_individual_point_visited)
         #print('Best path:', best_path, '\n' 'Best path length:', best_path_length )
     
+
+        # Save the pheromone
+        if SAVE_PHEROMONE:
+            with open('pytorch_neat/pheromone/P.pkl', 'wb') as output:
+                pickle.dump(pheromone, output, 1)
+
         return best_score
 

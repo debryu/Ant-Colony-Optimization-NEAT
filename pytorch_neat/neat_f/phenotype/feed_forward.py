@@ -5,6 +5,7 @@ import torch.nn as nn
 import neat_f.activations as a
 from torch import autograd
 
+VERBOSE = False
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,8 @@ class FeedForwardNet(nn.Module):
         # Set input values
         for u in input_units:
             outputs[u.ref_node.id] = x[0][u.ref_node.id]
+        
+        #print('INPUTS OF THE NETWORK: ', outputs)
 
         # Set bias value
         for u in bias_units:
@@ -45,14 +48,22 @@ class FeedForwardNet(nn.Module):
                 # Build input vector to current node
                 inputs_ids = self.genome.get_inputs_ids(current_unit.ref_node.id)
                 in_vec = autograd.Variable(torch.zeros((1, len(inputs_ids)), device=device, requires_grad=True))
+                
 
                 for i, input_id in enumerate(inputs_ids):
                     in_vec[0][i] = outputs[input_id]
 
+                if VERBOSE:
+                    print('in_vec: ', in_vec)
+
                 # Compute output of current node
                 linear_module = self.lin_modules[self.units.index(current_unit)]
                 if linear_module is not None:  # TODO: Can this be avoided?
+                    if VERBOSE:
+                        print('NON SCALED OUTPUT: ', linear_module(in_vec))
                     scaled = self.config.SCALE_ACTIVATION * linear_module(in_vec)
+                    if VERBOSE:
+                        print('NON SIGMOID OUTPUT: ', scaled)
                     out = self.activation(scaled)
                 else:
                     out = torch.zeros((1, 1))
@@ -64,6 +75,9 @@ class FeedForwardNet(nn.Module):
         output = autograd.Variable(torch.zeros((1, len(output_units)), device=device, requires_grad=True))
         for i, u in enumerate(output_units):
             output[0][i] = outputs[u.ref_node.id]
+
+        if VERBOSE:
+            print('OUTPUT: ', output)
         return output
 
     def build_units(self):

@@ -10,6 +10,7 @@ from neat_f.species import Species
 from neat_f.crossover import crossover
 from neat_f.mutation import mutate
 
+VERBOSE = True
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,11 @@ class Population:
             self.speciate(genome, 0)
 
     def run(self):
+        if VERBOSE:
+                    print("STARTING A NEAT RUN")
         for generation in range(1, self.Config.NUMBER_OF_GENERATIONS):
+            if VERBOSE:
+                    print("GENERATION",generation)
             # Get Fitness of Every Genome
             for genome in self.population:
                 genome.fitness = max(0, self.Config.fitness_fn(genome))
@@ -57,6 +62,9 @@ class Population:
             adj_fitnesses = [s.adjusted_fitness for s in remaining_species]
             adj_fitness_sum = sum(adj_fitnesses)
 
+            if VERBOSE:
+                    print("Remaining Species:", len(remaining_species))
+
             # Get the number of offspring for each species
             new_population = []
             for species in remaining_species:
@@ -79,6 +87,9 @@ class Population:
                 purge_index = max(2, purge_index)
                 cur_members = cur_members[:purge_index]
 
+                if VERBOSE:
+                    print("The new resulting specie has size", size)
+
                 for i in range(size):
                     parent_1 = random.choice(cur_members)
                     parent_2 = random.choice(cur_members)
@@ -89,6 +100,11 @@ class Population:
 
             # Set new population
             self.population = new_population
+
+            if VERBOSE:
+                print('Population STATS:')
+                for genome in self.population:
+                    print('num_nodes:', len(genome.node_genes))
             Population.current_gen_innovation = []
 
             # Speciate
@@ -103,7 +119,8 @@ class Population:
                 logger.info(f'Finished Generation {generation}')
                 logger.info(f'Best Genome Fitness: {best_genome.fitness}')
                 logger.info(f'Best Genome Length {len(best_genome.connection_genes)}\n')
-
+        
+        return best_genome, 'limit reached'
         return None, None
 
     def speciate(self, genome, generation):
@@ -143,10 +160,12 @@ class Population:
             # Create nodes
             for j in range(self.Config.NUM_INPUTS):
                 n = new_genome.add_node_gene('input')
+                #print('added node input')
                 inputs.append(n)
 
             for j in range(self.Config.NUM_OUTPUTS):
                 n = new_genome.add_node_gene('output')
+                #print('added node output')
                 outputs.append(n)
 
             if self.Config.USE_BIAS:

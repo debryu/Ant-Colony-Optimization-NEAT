@@ -16,7 +16,7 @@ def mutate(genome, config):
     :param config: Experiments' configuration file
     :return: None
     """
-
+    
     if utils.rand_uni_val() < config.CONNECTION_MUTATION_RATE:
         for c_gene in genome.connection_genes:
             if utils.rand_uni_val() < config.CONNECTION_PERTURBATION_RATE:
@@ -26,7 +26,9 @@ def mutate(genome, config):
                 c_gene.set_rand_weight()
 
     if utils.rand_uni_val() < config.ADD_NODE_MUTATION_RATE:
+        print('ADDED A NODE FROM MUTATIONNNNNNN')
         genome.add_node_mutation()
 
     if utils.rand_uni_val() < config.ADD_CONNECTION_MUTATION_RATE:
+        print('ADDED A CONNECTION FROM MUTATIONNNNNNN')
         genome.add_connection_mutation()
