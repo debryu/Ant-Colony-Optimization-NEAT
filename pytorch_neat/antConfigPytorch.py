@@ -11,7 +11,12 @@ import os
 
 IMPORT = True
 SAVE_PHEROMONE = True # Use the same pheromone for all generations
-file_path = 'pytorch_neat/pheromone/P.pkl'
+
+# CHANGE THIS FOR EVERY RUN
+PHEROMONE_FILE_NAME = 'pytorch-test'
+
+file_path = 'pytorch_neat/pheromone/' + PHEROMONE_FILE_NAME + '.pkl'
+
 if os.path.exists(file_path):
     file_present = True
 else:
@@ -65,8 +70,8 @@ class ANTConfig:
 
     FITNESS_THRESHOLD = 1000-400
 
-    POPULATION_SIZE = 150
-    NUMBER_OF_GENERATIONS = 10
+    POPULATION_SIZE = 15
+    NUMBER_OF_GENERATIONS = 20 +1
     SPECIATION_THRESHOLD = 3.0
 
     CONNECTION_MUTATION_RATE = 0.80
@@ -119,6 +124,9 @@ class ANTConfig:
             
             # Repeat the probability distribution for each ant
             probabilities = output_probabilities.unsqueeze(0).repeat(n_ants, 1)
+
+            # Only uncomment for the random run
+            probabilities = torch.ones(n_of_points).to(self.DEVICE).softmax(dim=0).repeat(n_ants, 1)
         
             whole_run = torch.multinomial(probabilities, n_of_points, replacement=False)
             
@@ -161,7 +169,7 @@ class ANTConfig:
 
         # Save the pheromone
         if SAVE_PHEROMONE:
-            with open('pytorch_neat/pheromone/P.pkl', 'wb') as output:
+            with open(file_path, 'wb') as output:
                 pickle.dump(pheromone, output, 1)
 
         #Test

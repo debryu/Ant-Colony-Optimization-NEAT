@@ -11,7 +11,10 @@ import os
 
 IMPORT = True
 SAVE_PHEROMONE = True # Use the same pheromone for all generations
-file_path = 'pytorch_neat/pheromone/P.pkl'
+# CHANGE THIS FOR EVERY RUN
+PHEROMONE_FILE_NAME = 'mod-test'
+
+file_path = 'pytorch_neat/pheromone/' + PHEROMONE_FILE_NAME + '.pkl'
 if os.path.exists(file_path):
     file_present = True
 else:
@@ -52,21 +55,21 @@ class ANTConfig:
     DEVICE = torch.device("cpu")
     VERBOSE = True
     print("Using device: ", DEVICE)
-    NUM_INPUTS = 2*n_of_points**2 + n_of_points
+    #NUM_INPUTS = 2*n_of_points**2 + n_of_points
     #Test
     #NUM_INPUTS = n_of_points
     #Test2
     NUM_INPUTS = n_of_points + n_of_points**2
     NUM_OUTPUTS = n_of_points 
-    USE_BIAS = False
+    USE_BIAS = True
 
     ACTIVATION = 'sigmoid'
     SCALE_ACTIVATION = 4.9
 
-    FITNESS_THRESHOLD = 165.0
+    FITNESS_THRESHOLD = 160.0
 
-    POPULATION_SIZE = 3
-    NUMBER_OF_GENERATIONS = 10
+    POPULATION_SIZE = 2
+    NUMBER_OF_GENERATIONS = 100+1
     SPECIATION_THRESHOLD = 3.0
 
     CONNECTION_MUTATION_RATE = 0.80
@@ -79,7 +82,7 @@ class ANTConfig:
     # Top percentage of species to be saved before mating
     PERCENTAGE_TO_SAVE = 0.80
 
-    def fitness_fn(self, genome, points = points, n_ants=10, n_generations=10, alpha=1, beta=1, evaporation_rate=0.5, Q=1):
+    def fitness_fn(self, genome, points = points, n_ants=8, n_generations=5, alpha=1, beta=1, evaporation_rate=0.5, Q=1):
         # Initialize the network
         phenotype = FeedForwardNet(genome, self)
         
@@ -138,7 +141,7 @@ class ANTConfig:
                     visited_asTensor = torch.Tensor(visited_asInt).to(self.DEVICE).unsqueeze(0)
 
                     # Concatenate the two tensors
-                    network_input = torch.cat((pheromone_asTensor, distances_asTensor, visited_asTensor), dim=1)
+                    #network_input = torch.cat((pheromone_asTensor, distances_asTensor, visited_asTensor), dim=1)
 
                     #Test
                     #network_input = visited_asTensor
@@ -161,9 +164,12 @@ class ANTConfig:
                         # If all probabilities are 0, we assign equal probabilities to all unvisited points
                         probabilities = np.ones(n_of_points)
                     
+                    # Only uncomment to check for random results
+                    probabilities = np.ones(n_of_points)
+
                     probabilities /= np.sum(probabilities)
                     
-                    print('probs',probabilities)
+                    #print('probs',probabilities)
                     next_point = np.random.choice(range(n_of_points), p=probabilities)
                     path.append(next_point)
                     path_length += distance(points[current_point], points[next_point])
@@ -181,24 +187,31 @@ class ANTConfig:
                     total_distance += distance(points[path[i]], points[path[i+1]])
 
                 # Score first attempt
-                score = (point_visited**2)*(1/total_distance)
+                #score = (point_visited**2)*(1/total_distance)
 
                 # Score second attempt
-                score = (point_visited/total_distance)
+                #score = (point_visited/total_distance)
 
                 # Score third attempt
-                score = (point_visited/total_distance #weight for choosing the shortest path
-                        + point_visited) #weight for choosing the path that visits the most points
+                #score = (point_visited/total_distance #weight for choosing the shortest path
+                #        + point_visited) #weight for choosing the path that visits the most points
                 
                 # Score fourth attempt
-                score = (40*point_visited/total_distance 
-                        + point_visited*10) 
+                #score = (40*point_visited/total_distance 
+                #        + point_visited*10) 
                 
                 # Score fifth attempt   
-                score = (1/(total_distance-40)*500 
+                #score = (1/(total_distance-40)*500 
+                #        + point_visited*10) 
+                
+                # Score sixth attempt   
+                score = (-total_distance + 100
                         + point_visited*10) 
-                if(point_visited == 10):
-                    score += 1000
+                # Score sixth attempt   
+                score = -total_distance + 150
+                        
+                #if(point_visited == 10):
+                #    score += 1000
 
                 
                 scores.append(score)
@@ -213,7 +226,7 @@ class ANTConfig:
                     best_total_distance = total_distance
             
             pheromone *= evaporation_rate
-            
+
             # Update pheromone
             for path, path_length in zip(paths, path_lengths):
                 if path_length == 0:
@@ -221,6 +234,11 @@ class ANTConfig:
                 for i in range(n_of_points-1):
                     pheromone[path[i], path[i+1]] += Q/path_length
                 pheromone[path[-1], path[0]] += Q/path_length
+
+            # Normalize pheromone
+            min_val = np.min(pheromone)
+            max_val = np.max(pheromone)
+            pheromone = (pheromone - min_val) * (10 - 0) / (max_val - min_val) + 0
         
         
         print('Best distance travelled:', best_total_distance)
@@ -232,7 +250,7 @@ class ANTConfig:
 
         # Save the pheromone
         if SAVE_PHEROMONE:
-            with open('pytorch_neat/pheromone/P.pkl', 'wb') as output:
+            with open(file_path, 'wb') as output:
                 pickle.dump(pheromone, output, 1)
 
         return best_score

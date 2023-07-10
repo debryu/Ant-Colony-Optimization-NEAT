@@ -5,9 +5,20 @@ import neat_f.population as pop
 '''---------------------------------
         SET CONFIGURATION FILE
 ---------------------------------'''
-import antConfigPytorch as c
+
+# CHANGE THIS FOR EVERY RUN
+#import antConfigPytorch as c
+# OR
+import antConfigMod as c
+
+
 from neat_f.visualize import draw_net, draw_net_c
 from tqdm import tqdm
+
+SOLUTION_PATH = 'solutions/'
+
+# CHANGE THIS FOR EVERY RUN
+SOLUTION_FILE_NAME = 'mod-test-solution.pkl'
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +38,7 @@ for i in tqdm(range(1)):
     solution, generation = neat.run()
 
     if generation == 'limit reached':
-        generation = 505
+        generation = 5050505
         print('limit reached')
     if solution is not None:
         avg_num_generations = ((avg_num_generations * num_of_solutions) + generation) / (num_of_solutions + 1)
@@ -43,9 +54,13 @@ for i in tqdm(range(1)):
         num_of_solutions += 1
         draw_net_c(c.ANTConfig, solution, view=True, filename='./images/solution-' + str(num_of_solutions), show_disabled=True)
 
+
+if generation == 5050505:
+    generation = 'limit reached'
 # Save the solution
-#with open('pytorch_neat/solutions/solution.pkl', 'wb') as output:
-#    pickle.dump(solution, generation, 1)
+with open(SOLUTION_PATH + SOLUTION_FILE_NAME, 'wb') as output:
+    saved_version = {'solution': solution, 'generation': generation}
+    pickle.dump(solution, output, 1)
 
 
 logger.info('Total Number of Solutions: ', num_of_solutions)

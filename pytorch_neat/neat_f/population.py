@@ -1,6 +1,6 @@
 import logging
 import random
-
+import pickle
 import numpy as np
 
 #import neat.utils as utils
@@ -11,7 +11,10 @@ from neat_f.crossover import crossover
 from neat_f.mutation import mutate
 
 VERBOSE = True
+STATS_FOLDER = 'stats/'
 
+# CHANGE THIS FOR EVERY RUN
+FOLDER_NAME = STATS_FOLDER + 'mod-test/'
 logger = logging.getLogger(__name__)
 
 
@@ -33,9 +36,18 @@ class Population:
         for generation in range(1, self.Config.NUMBER_OF_GENERATIONS):
             if VERBOSE:
                     print("GENERATION",generation)
+
             # Get Fitness of Every Genome
+            fitness = []
             for genome in self.population:
                 genome.fitness = max(0, self.Config.fitness_fn(genome))
+                fitness_asInt = int(genome.fitness)
+                fitness.append(fitness_asInt)
+
+
+            # Save Generation Stats
+            with open(FOLDER_NAME + f'population_stats-gen{generation}.pkl', 'wb') as output:
+                pickle.dump(fitness, output, 1)
 
             best_genome = utils.get_best_genome(self.population)
 
@@ -119,6 +131,9 @@ class Population:
                 logger.info(f'Finished Generation {generation}')
                 logger.info(f'Best Genome Fitness: {best_genome.fitness}')
                 logger.info(f'Best Genome Length {len(best_genome.connection_genes)}\n')
+
+            
+
         
         return best_genome, 'limit reached'
         return None, None
