@@ -18,7 +18,7 @@ from tqdm import tqdm
 SOLUTION_PATH = 'solutions/'
 
 # CHANGE THIS FOR EVERY RUN
-SOLUTION_FILE_NAME = 'mod-test-solution.pkl'
+SOLUTION_FILE_NAME = c.PHEROMONE_FILE_NAME + '-solution.pkl'
 
 logger = logging.getLogger(__name__)
 

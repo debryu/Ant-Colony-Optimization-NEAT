@@ -11,8 +11,9 @@ import os
 
 IMPORT = True
 SAVE_PHEROMONE = True # Use the same pheromone for all generations
+ONLY_GLOBAL_UPDATE = False
 # CHANGE THIS FOR EVERY RUN
-PHEROMONE_FILE_NAME = 'mod-test'
+PHEROMONE_FILE_NAME = 'mod-hidden-large-noglobal'
 
 file_path = 'pytorch_neat/pheromone/' + PHEROMONE_FILE_NAME + '.pkl'
 
@@ -43,10 +44,9 @@ for point in points:
 
 
 class ANTConfig:
-    
-
+    FILE_NAME = PHEROMONE_FILE_NAME
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    DEVICE = torch.device("cpu")
+    #DEVICE = torch.device("cpu")
     VERBOSE = True
     print("Using device: ", DEVICE)
     #NUM_INPUTS = 2*n_of_points**2 + n_of_points
@@ -54,29 +54,33 @@ class ANTConfig:
     #NUM_INPUTS = n_of_points
     #Test2
     NUM_INPUTS = 2*n_of_points 
+    NUM_HIDDEN1 = 4*n_of_points
+    NUM_HIDDEN2 = 8*n_of_points
+    NUM_HIDDEN3 = 4*n_of_points
+    NUM_HIDDEN4 = 2*n_of_points
     NUM_OUTPUTS = n_of_points 
     USE_BIAS = True
 
     ACTIVATION = 'sigmoid'
     SCALE_ACTIVATION = 4.9
 
-    FITNESS_THRESHOLD = 160.0
+    FITNESS_THRESHOLD = 100.0 + 90
 
-    POPULATION_SIZE = 2
+    POPULATION_SIZE = 20
     NUMBER_OF_GENERATIONS = 100+1
     SPECIATION_THRESHOLD = 3.0
 
-    CONNECTION_MUTATION_RATE = 0.80
+    CONNECTION_MUTATION_RATE = 0.60
     CONNECTION_PERTURBATION_RATE = 0.90
     ADD_NODE_MUTATION_RATE = 0.5
-    ADD_CONNECTION_MUTATION_RATE = 0.5
+    ADD_CONNECTION_MUTATION_RATE = 0.35
 
     CROSSOVER_REENABLE_CONNECTION_GENE_RATE = 0.25
 
     # Top percentage of species to be saved before mating
     PERCENTAGE_TO_SAVE = 0.80
 
-    def fitness_fn(self, genome, points = points, n_ants=8, n_generations=5, alpha=1, beta=1, evaporation_rate=0.5, Q=1):
+    def fitness_fn(self, genome, points = points, n_ants=20, n_generations=3, alpha=1, beta=1, evaporation_rate=0.5, Q=1):
         # Initialize the network
         phenotype = FeedForwardNet(genome, self)
         
@@ -127,6 +131,7 @@ class ANTConfig:
                     #print(phenotype)
                     
                     # Get the pheromone level of the current point
+                    
                     pheromone_current = pheromone[current_point]
 
                     #print('pheromone_current',pheromone_current)
@@ -158,6 +163,7 @@ class ANTConfig:
                     network_input = torch.cat((pheromone_asTensor, visited_asTensor), dim=1)
 
                     #print(network_input)
+                    #print("FFNN doing its job...")
                     probabilities = phenotype(network_input)
                     #print('probs',probabilities)
                     ''' OUTPUTS FOR NEURAL NETWORK '''
@@ -169,7 +175,7 @@ class ANTConfig:
                     probabilities = probabilities.squeeze(0).to('cpu').detach().numpy()
                     #print('probs',probabilities)
 
-                    if(np.sum(probabilities) == 0):
+                    if(np.sum(probabilities) == 0 or np.isnan(probabilities).any()):
                         # If all probabilities are 0, we assign equal probabilities to all unvisited points
                         probabilities = np.ones(n_of_points)
                     
@@ -217,7 +223,7 @@ class ANTConfig:
                 score = (-total_distance + 100
                         + point_visited*10) 
                 # Score sixth attempt   
-                score = -total_distance + 150
+                #score = -total_distance + 150
                         
                 #if(point_visited == 10):
                 #    score += 1000
@@ -236,13 +242,21 @@ class ANTConfig:
             
             pheromone *= evaporation_rate
 
+
+            print("Pheromone update...")
             # Update pheromone
-            for path, path_length in zip(paths, path_lengths):
-                if path_length == 0:
-                    continue
+
+            if(ONLY_GLOBAL_UPDATE):
                 for i in range(n_of_points-1):
-                    pheromone[path[i], path[i+1]] += Q/path_length
-                pheromone[path[-1], path[0]] += Q/path_length
+                    pheromone[best_path[i], best_path[i+1]] += Q/best_path_length
+                pheromone[best_path[-1], best_path[0]] += Q/best_path_length
+            else:
+                for path, path_length in zip(paths, path_lengths):
+                    if path_length == 0:
+                        continue
+                    for i in range(n_of_points-1):
+                        pheromone[path[i], path[i+1]] += Q/path_length
+                    pheromone[path[-1], path[0]] += Q/path_length
 
             # Normalize pheromone
             min_val = np.min(pheromone)
@@ -262,5 +276,5 @@ class ANTConfig:
             with open(file_path, 'wb') as output:
                 pickle.dump(pheromone, output, 1)
 
-        return best_score
+        return best_score,best_individual_point_visited
 

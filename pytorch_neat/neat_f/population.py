@@ -14,11 +14,12 @@ VERBOSE = True
 STATS_FOLDER = 'stats/'
 
 # CHANGE THIS FOR EVERY RUN
-FOLDER_NAME = STATS_FOLDER + 'mod-test/'
+FOLDER_NAME = STATS_FOLDER + 'mod-hidden-test/'
 logger = logging.getLogger(__name__)
 
 
 class Population:
+    
     __global_innovation_number = 0
     current_gen_innovation = []  # Can be reset after each generation according to paper
 
@@ -31,26 +32,37 @@ class Population:
             self.speciate(genome, 0)
 
     def run(self):
+        STATS_NAME = self.Config.FILE_NAME + "/"
         if VERBOSE:
                     print("STARTING A NEAT RUN")
         for generation in range(1, self.Config.NUMBER_OF_GENERATIONS):
             if VERBOSE:
                     print("GENERATION",generation)
 
+            print("Computing Fitness...")
             # Get Fitness of Every Genome
             fitness = []
+            point_visited = []
             for genome in self.population:
-                genome.fitness = max(0, self.Config.fitness_fn(genome))
+                fit,pv = self.Config.fitness_fn(genome)
+                genome.fitness = max(0, fit)
                 fitness_asInt = int(genome.fitness)
                 fitness.append(fitness_asInt)
+                point_visited.append(pv)
 
-
+            print("Saving stats...")
             # Save Generation Stats
-            with open(FOLDER_NAME + f'population_stats-gen{generation}.pkl', 'wb') as output:
-                pickle.dump(fitness, output, 1)
+            gen_stats = {'fitness': fitness, 'point_visited': point_visited}
+            with open(STATS_FOLDER + STATS_NAME + f'population_stats-gen{generation}.pkl', 'wb') as output:
+                pickle.dump(gen_stats, output, 1)
 
             best_genome = utils.get_best_genome(self.population)
 
+            # Save best genome
+            with open('solutions/' + STATS_NAME + f'/bestGenome-gen{generation}.pkl', 'wb') as output:
+                pickle.dump(best_genome, output, 1)
+
+            print("Reproducing...")
             # Reproduce
             all_fitnesses = []
             remaining_species = []
@@ -79,6 +91,8 @@ class Population:
 
             # Get the number of offspring for each species
             new_population = []
+
+            print("Selecting the new population...")
             for species in remaining_species:
                 if species.adjusted_fitness > 0:
                     size = max(2, int((species.adjusted_fitness/adj_fitness_sum) * self.Config.POPULATION_SIZE))
@@ -125,6 +139,8 @@ class Population:
 
             if best_genome.fitness >= self.Config.FITNESS_THRESHOLD:
                 return best_genome, generation
+            
+
 
             # Generation Stats
             if self.Config.VERBOSE:
@@ -170,13 +186,38 @@ class Population:
             new_genome = Genome()
             inputs = []
             outputs = []
+            HL1 = []
+            HL2 = []
+            HL3 = []
+            HL4 = []
             bias = None
 
+            print("Creating nodes...")
             # Create nodes
             for j in range(self.Config.NUM_INPUTS):
                 n = new_genome.add_node_gene('input')
                 #print('added node input')
                 inputs.append(n)
+
+            # Initialize hidden layers
+            for j in range(self.Config.NUM_HIDDEN1):
+                n = new_genome.add_node_gene('hidden')
+                HL1.append(n)
+                #print('added node hidden')
+
+            for j in range(self.Config.NUM_HIDDEN2):
+                n = new_genome.add_node_gene('hidden')
+                HL2.append(n)
+
+            for j in range(self.Config.NUM_HIDDEN3):
+                n = new_genome.add_node_gene('hidden')
+                HL3.append(n)
+
+            for j in range(self.Config.NUM_HIDDEN4):
+                n = new_genome.add_node_gene('hidden')
+                HL4.append(n)
+                
+            # Create output nodes
 
             for j in range(self.Config.NUM_OUTPUTS):
                 n = new_genome.add_node_gene('output')
@@ -186,17 +227,36 @@ class Population:
             if self.Config.USE_BIAS:
                 bias = new_genome.add_node_gene('bias')
 
+            print("Adding connections...")
             # Create connections
             for input in inputs:
-                for output in outputs:
-                    new_genome.add_connection_gene(input.id, output.id)
+                for hn1 in HL1:
+                    new_genome.add_connection_gene(input.id, hn1.id)
 
+
+            for hn1 in HL1:
+                for hn2 in HL2:
+                    new_genome.add_connection_gene(hn1.id, hn2.id)
+
+            for hn2 in HL2:
+                for hn3 in HL3:
+                    new_genome.add_connection_gene(hn2.id, hn3.id)
+            
+            for hn3 in HL3:
+                for hn4 in HL4:
+                    new_genome.add_connection_gene(hn3.id, hn4.id)
+            
+            for hn4 in HL4:
+                for output in outputs:
+                    new_genome.add_connection_gene(hn4.id, output.id)
+
+            # Add bias connection
             if bias is not None:
                 for output in outputs:
                     new_genome.add_connection_gene(bias.id, output.id)
 
             pop.append(new_genome)
-
+            print("Initial population created")
         return pop
 
     @staticmethod

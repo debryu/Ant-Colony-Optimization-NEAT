@@ -13,7 +13,7 @@ IMPORT = True
 SAVE_PHEROMONE = True # Use the same pheromone for all generations
 
 # CHANGE THIS FOR EVERY RUN
-PHEROMONE_FILE_NAME = 'pytorch-test'
+PHEROMONE_FILE_NAME = 'pytorch-hidden-test'
 
 file_path = 'pytorch_neat/pheromone/' + PHEROMONE_FILE_NAME + '.pkl'
 
@@ -53,11 +53,16 @@ for point in points:
 
 
 class ANTConfig:
+    FILE_NAME = PHEROMONE_FILE_NAME
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     #DEVICE = torch.device("cpu")
     VERBOSE = True
     print("Using device: ", DEVICE)
     NUM_INPUTS = 2*n_of_points**2 + n_of_points
+    NUM_HIDDEN1 = 4*n_of_points
+    NUM_HIDDEN2 = 8*n_of_points
+    NUM_HIDDEN3 = 4*n_of_points
+    NUM_HIDDEN4 = 2*n_of_points
     #Test
     #NUM_INPUTS = n_of_points
     #Test2
